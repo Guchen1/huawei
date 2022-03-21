@@ -180,11 +180,12 @@ bool cmpHot(const SiteNode& a, const SiteNode& b)
     return a.hot > b.hot;
 } //按热度排序
 
-void allocateBandwith(int timeIndex) //最简化版，暂未考虑溢出，热度与95%的阻止
+void allocateBandwith(int timeIndex,ostream& fout) //最简化版，暂未考虑溢出，热度与95%的阻止
 {
     for (int i = 0; i < clientArrLen; ++i)//主要逻辑
     {
         //TODO：写入客户名字
+        fout << clientArr[i].clientName << ':';
         if (demand[timeIndex][i] == 0)
         {
             continue;
@@ -199,7 +200,7 @@ void allocateBandwith(int timeIndex) //最简化版，暂未考虑溢出，热度与95%的阻止
             }
 
         }
-        
+        string temp;
         int shengYu=0;
         int tempD=demand[timeIndex][i]/(avIndex.size());
 
@@ -228,15 +229,20 @@ void allocateBandwith(int timeIndex) //最简化版，暂未考虑溢出，热度与95%的阻止
                 siteArr[j].timeT++;
             }
             int alloc= siteArr[j].curAlloc-allocOrigin;//TODO:写入带宽
+            temp += "<" + siteArr[j].siteName+ "," + to_string(alloc) + ">,";
         }
+        temp.erase(temp.end()-1);
+        temp += '\n';
+        fout << temp;
     }
 }
 
-void allocateBandwith2(int timeIndex) //剩余5%的时间
+void allocateBandwith2(int timeIndex, ostream& fout) //剩余5%的时间
 {
     for (int i = 0; i < clientArrLen; ++i)//主要逻辑
     {
         //TODO：写入客户名字
+        fout << clientArr[i].clientName << ':';
         if (demand[timeIndex][i] == 0)
         {
             continue;
@@ -254,7 +260,7 @@ void allocateBandwith2(int timeIndex) //剩余5%的时间
 
         int shengYu = 0;
         
-
+        string temp;
         for (auto j : avIndex)  //计算总可分配流量
         {
             if (siteArr[j].timeT >= timeSeqName.size() * 0.05 - 1)
@@ -262,6 +268,7 @@ void allocateBandwith2(int timeIndex) //剩余5%的时间
                 continue;
             }
             //TODO：写入边缘节点名字
+            
             int allocOrigin = siteArr[j].curAlloc;
             siteArr[j].curAlloc += demand[timeIndex][i];
             if (siteArr[j].curAlloc > siteArr[j].bandwidth)//如果超出限额了，就给下一个节点，同时高占用++
@@ -275,8 +282,12 @@ void allocateBandwith2(int timeIndex) //剩余5%的时间
                 siteArr[j].timeT++;
             }
             int alloc = siteArr[j].curAlloc - allocOrigin;//TODO:写入带宽
+            temp += "<" + siteArr[j].siteName + "," + to_string(alloc) + ">,";
             break;
         }
+        temp.erase(temp.end() - 1);
+        temp += '\n';
+        fout << temp;
     }
 }
 
@@ -289,6 +300,7 @@ void testIO()
 
 int main()
 {
+    ofstream output(OUTPUT_PATH,ios::in);
     testIO();
     for (int j = 0; j < siteArrLen; ++j)    //获得热度
     {
@@ -301,15 +313,13 @@ int main()
         }
     }
     sort(siteArr, siteArr + siteArrLen, cmpHot); //按热度排序
-    int hotNum = 0.3 * siteArrLen;  //设置热度阈值
-    for (int i = 0; i <= hotNum; ++i)  //设置热度
-    {
-        siteArr[i].hot = 1;
+    for (int time = 0; time < timeSeqName.size(); ++time) {
+        if (time <= 0.95 * timeSeqName.size())
+            allocateBandwith(time,output);
+        else
+            allocateBandwith2(time,output);
     }
-    for (int i = hotNum + 1; i < siteArrLen; ++i)
-    {
-        siteArr[i].hot = 0;
-    }
+   
 
 
 
